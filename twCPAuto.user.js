@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Twitch ChannelPoints Autoclaim
-// @version      0.1
+// @version      0.2
 // @description  Automate claiming of bonus chests
 // @author       Evanito
 // @include      *://*.twitch.tv/*
@@ -11,10 +11,13 @@
 
 // ==== SETTINGS ====
 var autoRun = true;
+var retries = 5; // Amount of cycles to try and load your points balance before giving up.
 // == END SETTINGS ==
 
 // Do not edit below this line!
 // ==========================================
+var balance = -1;
+var balanceSet = false;
 (function() {
     console.log(timeString() + " [CPA] Begin ChannelPoints Autoclaim by Evanito.");
     if (autoRun) {
@@ -24,12 +27,56 @@ var autoRun = true;
 })();
 
 function run() {
+    clickChest();
+    var oldBalance = balance;
+    balance = getBalance();
+    if (balance > -1) {balanceSet = true; retries = 999;}
+    if (balance != oldBalance && oldBalance != -1) {
+        console.log(timeString() + " [CPA] Balance has changed by: " + (balance - oldBalance));
+    }
+    if (retries-- > 0) {
+        setTimeout(function(){ run(); }, 5000);
+    } else {
+        console.log(timeString() + " [CPA] No channel points found. Shutting down.");
+    }
+}
+
+function clickChest() {
     var plays = document.getElementsByClassName("claimable-bonus__icon");
     for (var i = 0; i < plays.length; i++) {
         plays[i].click();
         console.log(timeString() + " [CPA] Clicked a bonus chest.");
     }
-    setTimeout(function(){ run(); }, 5000);
+}
+
+function getBalance() { // Returns user's balance as int, or -1 if cannot be found yet.
+    var balances = document.getElementsByClassName("tw-tooltip tw-tooltip--align-center tw-tooltip--right");
+    var balance = -1;
+    if (balances.length >= 3) { // For some reason, the balances div is always third, unless it hasn't loaded.
+        try {
+            var balanceHTML = balances[2].innerHTML;
+            var patt = /\d*,?\d*/;
+            var balanceRegEx = patt.exec(balanceHTML)[0];
+            balance = parseInt(balanceRegEx.replace(",", ""));
+        } catch(err) {
+            console.log(timeString() + " [CPA] Couldn't find balance, err: " + err);
+        }
+    }
+    return balance;
+}
+
+function getRewards() { // WIP: get objects for each of the rewards for further processing.
+    try {
+    var rewardBox = document.getElementsByClassName("rewards-list");
+    if (rewardBox.length >= 1) {
+        var rewards = rewardBox[0].getElementsByClassName("reward-list-item");
+        return rewards; // Outputs an array of the reward HTML objects, need to clean this up.
+    }
+    return -1;
+    } catch(err) {
+        console.log(timeString() + " [CPA] Error getting channel's rewards. Err: " + err);
+        return -1;
+    }
 }
 
 function timeString() {
