@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Twitch ChannelPoints Autoclaim
-// @version      0.2
+// @version      0.2.1
 // @description  Automate claiming of bonus chests
 // @author       Evanito
 // @include      *://*.twitch.tv/*
@@ -11,7 +11,7 @@
 
 // ==== SETTINGS ====
 var autoRun = true;
-var retries = 5; // Amount of cycles to try and load your points balance before giving up.
+var retries = -1; // Amount of cycles to try and load your points balance before giving up.
 // == END SETTINGS ==
 
 // Do not edit below this line!
@@ -34,7 +34,7 @@ function run() {
     if (balance != oldBalance && oldBalance != -1) {
         console.log(timeString() + " [CPA] Balance has changed by: " + (balance - oldBalance));
     }
-    if (retries-- > 0) {
+    if (retries-- > 0 || retries < -1) {
         setTimeout(function(){ run(); }, 5000);
     } else {
         console.log(timeString() + " [CPA] No channel points found. Shutting down.");
